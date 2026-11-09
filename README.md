@@ -82,7 +82,7 @@ Aceleración `S₁₁ = 74,396 / 9,587 = 7,76`. Eficiencia `E₁₁ = 7,76 / 11 
 
 Las 10 palabras principales coinciden con la línea base en las tres corridas.
 
-Tiempo local por proceso en la corrida mediana (corrida 2):
+Tiempo local por proceso en la corrida con LI mediano (corrida 2):
 
 | Rango | Archivos | Tiempo local (s) |
 | ---: | ---: | ---: |
@@ -137,7 +137,7 @@ Tiempo local por proceso en la corrida mediana (corrida 1):
 
 ## 5. Análisis
 
-**Rendimiento.** La versión 1 reduce el tiempo de 74,4 s a 9,6 s. La eficiencia de 0,71 se explica porque el PC tiene 12 procesadores lógicos compartidos con el sistema operativo y Docker, así que 11 procesos no logran una aceleración ideal de 11. La comunicación es mínima: un broadcast, un scatter y un gather frente a 9,6 s de cómputo.
+**Rendimiento.** La versión 1 reduce el tiempo de 74,4 s a 9,6 s. Una causa probable de la eficiencia de 0,71 es que el PC tiene 12 procesadores lógicos compartidos con el sistema operativo y Docker, así que 11 procesos no alcanzan la aceleración ideal de 11. La comunicación es mínima: un broadcast, un scatter y un gather frente a 9,6 s de cómputo.
 
 **Balance de carga.** La versión 1 está bien balanceada (LI entre 1,05 y 1,06). Cada proceso recibe 272 o 273 archivos, y sus tiempos locales van de 8,3 s a 9,6 s.
 
