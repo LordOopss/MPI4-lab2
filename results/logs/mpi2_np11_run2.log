@@ -1,0 +1,27 @@
+EXECUTION_TIME=12.255207
+Procesos: 11
+Archivos procesados: 3000
+Reporte por proceso:
+  rank 0: archivos=329 tiempo_local=11.638277 s
+  rank 1: archivos=267 tiempo_local=9.549719 s
+  rank 2: archivos=266 tiempo_local=9.406657 s
+  rank 3: archivos=266 tiempo_local=9.399447 s
+  rank 4: archivos=263 tiempo_local=9.292746 s
+  rank 5: archivos=260 tiempo_local=8.855894 s
+  rank 6: archivos=267 tiempo_local=9.629285 s
+  rank 7: archivos=266 tiempo_local=9.482664 s
+  rank 8: archivos=279 tiempo_local=9.558417 s
+  rank 9: archivos=270 tiempo_local=9.634099 s
+  rank 10: archivos=267 tiempo_local=9.570844 s
+LOAD_IMBALANCE=1.2075
+Top 10 palabras de consulta en el corpus:
+  a: 785774
+  para: 392156
+  sus: 228913
+  otros: 105530
+  ante: 99832
+  unos: 88794
+  otra: 83901
+  vosotros: 61617
+  mios: 58420
+  tuya: 56635
