@@ -3,7 +3,7 @@
 ## 1. Title and Team Information
 
 **Lab:** Parallel Word Counting in a Text Corpus with MPI
-**Team:** Lordo (add the names of the other team members here)
+**Team:** Juan Manuel Vallejo
 
 ## 2. Problem Description
 
