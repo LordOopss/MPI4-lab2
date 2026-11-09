@@ -1,67 +1,67 @@
 # LAB 2 – Parallel Word Counting in a Text Corpus with MPI
 
-## 1. Title and Team Information
+## 1. Título e información del equipo
 
-**Lab:** Parallel Word Counting in a Text Corpus with MPI
+**Laboratorio:** Parallel Word Counting in a Text Corpus with MPI
 
-**Team:** Juan Manuel Vallejo
+**Equipo:** Juan Manuel Vallejo
 
-## 2. Problem Description
+## 2. Descripción del problema
 
-The corpus is a folder `dataset/` with 3,000 text files (`file_0001.txt` … `file_3000.txt`) and one query file, `consulta.txt`, with 200 distinct words, one per line.
+El corpus es una carpeta `dataset/` con 3.000 archivos de texto (`file_0001.txt` … `file_3000.txt`) y un archivo de consulta, `consulta.txt`, con 200 palabras distintas, una por línea.
 
-The goal is to count how many times each query word appears in the whole corpus and report the 10 most frequent ones. The program must match the sequential baseline exactly.
+El objetivo es contar cuántas veces aparece cada palabra de la consulta en todo el corpus y reportar las 10 más frecuentes. El programa debe coincidir exactamente con la línea base secuencial.
 
-The dataset is generated with `generator.py` (fixed seed `42`, so every team gets the same data). The generated corpus has 44,951,458 words in total, and the file sizes vary a lot, so the cost of processing each file is very different.
+El conjunto de datos se genera con `generator.py` (semilla fija `42`, así que todos los equipos obtienen los mismos datos). El corpus generado tiene 44.951.458 palabras en total, y los tamaños de los archivos varían mucho, así que el costo de procesar cada archivo es muy diferente.
 
-The lab compares three programs: a sequential baseline, a first MPI version with a static distribution of files, and a second MPI version with a dynamic distribution.
+El laboratorio compara tres programas: una línea base secuencial, una primera versión MPI con distribución estática de archivos y una segunda versión MPI con distribución dinámica.
 
-## 3. Environment and Execution Instructions
+## 3. Entorno e instrucciones de ejecución
 
-### a. Experimental Plan
+### a. Plan experimental
 
-- Dataset: generated once with `generator.py` (seed 42). It is the same for every run.
-- Each implementation is run three times. The median is used for all comparisons.
-- The MPI versions run with `p = 11` processes, the value recommended by `detectar_procesos_mpi.py` on the team's machine (Windows PC with Docker Desktop).
-- Measured values: total execution time, the local processing time of each process, and the load imbalance `LI = max(t_i) / mean(t_i)`.
-- Derived values: speedup `S_p = T_seq / T_p` and efficiency `E_p = S_p / p`.
+- Conjunto de datos: se genera una vez con `generator.py` (semilla 42). Es el mismo en todas las ejecuciones.
+- Cada implementación se ejecuta tres veces. La mediana se usa para todas las comparaciones.
+- Las versiones MPI se ejecutan con `p` procesos, donde `p` es el valor recomendado por `detectar_procesos_mpi.py` en la máquina del equipo (PC con Windows y Docker Desktop).
+- Valores medidos: tiempo total de ejecución, tiempo de procesamiento local de cada proceso y desbalance de carga `LI = max(t_i) / mean(t_i)`.
+- Valores derivados: aceleración `S_p = T_seq / T_p` y eficiencia `E_p = S_p / p`.
 
-### b. Sequential baseline
+### b. Línea base secuencial
 
-`baseline_secuencial.py` is the reference implementation (provided, not modified). It:
+`baseline_secuencial.py` es la implementación de referencia (provista, no modificada). Hace lo siguiente:
 
-1. reads `consulta.txt` and lowercases the words,
-2. goes through each `file_*.txt` in the dataset, line by line, and counts the tokens that are in the query,
-3. measures the time of the counting step only, and prints it as `Tiempo de ejecución: … segundos`,
-4. writes `dataset/baseline_results.csv` and prints the top 10 words.
+1. lee `consulta.txt` y pasa las palabras a minúsculas,
+2. recorre cada `file_*.txt` del conjunto de datos, línea por línea, y cuenta los tokens que están en la consulta,
+3. mide el tiempo solo del paso de conteo y lo imprime como `Tiempo de ejecución: … segundos`,
+4. escribe `dataset/baseline_results.csv` e imprime las 10 palabras principales.
 
-### c. MPI version 1 (static distribution)
+### c. Versión MPI 1 (distribución estática)
 
 `mpi1.py`:
 
-1. Rank 0 reads `consulta.txt` and lists the `file_*.txt` files (sorted by name).
-2. Rank 0 sends the query words to all processes with `comm.bcast`.
-3. Rank 0 splits the file list round-robin (file `i` goes to rank `i % p`) and sends each process its list with `comm.scatter`.
-4. Each process counts the query words in its own files and measures how long that takes (its local time).
-5. Each process returns its partial counts and its local time with `comm.gather`.
-6. Rank 0 merges the partial counts and prints the total time, the number of files and the local time per process, the load imbalance, and the top 10 words.
+1. El rango 0 lee `consulta.txt` y lista los archivos `file_*.txt` (ordenados por nombre).
+2. El rango 0 envía las palabras de la consulta a todos los procesos con `comm.bcast`.
+3. El rango 0 reparte la lista de archivos por turnos (el archivo `i` va al rango `i % p`) y envía a cada proceso su lista con `comm.scatter`.
+4. Cada proceso cuenta las palabras de la consulta en sus propios archivos y mide cuánto tarda (su tiempo local).
+5. Cada proceso devuelve sus conteos parciales y su tiempo local con `comm.gather`.
+6. El rango 0 combina los conteos parciales e imprime el tiempo total, el número de archivos y el tiempo local por proceso, el desbalance de carga y las 10 palabras principales.
 
-### d. MPI version 2 (dynamic distribution)
+### d. Versión MPI 2 (distribución dinámica)
 
-`mpi2.py` is the same program with a work queue instead of a fixed split:
+`mpi2.py` es el mismo programa, pero con una cola de trabajo en lugar de un reparto fijo:
 
-1. Rank 0 sorts the files from largest to smallest, so the big files start first and the small files fill the gaps at the end.
-2. Each worker keeps two files queued. When it sends back its partial counts, it immediately receives the next file name.
-3. Rank 0 also counts files itself, between checks for finished results (`iprobe`), so it does not block the workers.
+1. El rango 0 ordena los archivos de mayor a menor, para que los archivos grandes empiecen primero y los pequeños llenen los huecos al final.
+2. Cada trabajador tiene dos archivos en cola. Cuando envía sus conteos parciales, recibe de inmediato el nombre del siguiente archivo.
+3. El rango 0 también cuenta archivos por su cuenta, entre revisiones de resultados terminados (`iprobe`), para no bloquear a los trabajadores.
 
-### e. Test procedure
+### e. Procedimiento de prueba
 
-1. Install Docker Desktop and make sure it is running.
-2. Put `generator.py`, `baseline_secuencial.py`, `run_all.sh`, `mpi1.py` and `mpi2.py` in the same folder.
-3. Find `p` on your machine: run the calibrator from the workshop repository (`detectar_procesos_mpi.py`) and use its `N RECOMENDADO`.
-4. Generate the dataset and run all the experiments with `run_all.sh`. Set `NP_LIST` to your `p` and `RUNS` to 3.
+1. Instala Docker Desktop y asegúrate de que esté corriendo.
+2. Pon `generator.py`, `baseline_secuencial.py`, `run_all.sh`, `mpi1.py` y `mpi2.py` en la misma carpeta.
+3. Encuentra `p` en tu máquina: ejecuta el calibrador del repositorio del taller (`detectar_procesos_mpi.py`) y usa su `N RECOMENDADO`.
+4. Genera el conjunto de datos y ejecuta todos los experimentos con `run_all.sh`. Pon `NP_LIST` con tu `p` y `RUNS` en 3.
 
-Windows (PowerShell, from the project folder):
+Windows (PowerShell, desde la carpeta del proyecto):
 
 ```powershell
 docker run --rm -v "${PWD}:/app" -e NP_LIST=11 -e RUNS=3 augustosalazar/slim-mpi:2 sh /app/run_all.sh
@@ -73,129 +73,122 @@ macOS / Linux:
 docker run --rm -v "$(pwd):/app" -e NP_LIST=11 -e RUNS=3 augustosalazar/slim-mpi:2 sh /app/run_all.sh
 ```
 
-The script writes the logs to `results/logs/` and a summary to `results/times_summary.csv`.
+El script escribe los logs en `results/logs/` y un resumen en `results/times_summary.csv`.
 
-> **Note:** `run_all.sh` looks for the line `EXECUTION_TIME=` in each log. The baseline prints `Tiempo de ejecución:` instead, so its time is not written to `times_summary.csv`. Take the baseline time from `results/logs/baseline_secuencial.log` (and the two extra baseline runs from `baseline_2.log` and `baseline_3.log`).
+> **Nota:** `run_all.sh` busca la línea `EXECUTION_TIME=` en cada log. La línea base imprime `Tiempo de ejecución:` en su lugar, así que su tiempo no se escribe en `times_summary.csv`. Toma el tiempo de la línea base de `results/logs/baseline_secuencial.log` (y las dos corridas extra de `baseline_2.log` y `baseline_3.log`).
 
-To run the baseline alone:
+Para ejecutar solo la línea base:
 
 ```bash
 docker run --rm -v "$(pwd):/app" augustosalazar/slim-mpi:2 python /app/baseline_secuencial.py
 ```
 
-## 4. Results (p = 11)
+## 4. Resultados (p = 11)
 
-Each table gives the three runs and their median. The median of each column is computed separately.
+Cada tabla muestra las tres corridas y su mediana. La mediana de cada columna se calcula por separado.
 
-### a. Sequential baseline
+### a. Línea base secuencial
 
-| Run | Time (s) |
+| Corrida | Tiempo (s) |
 | --- | ---: |
-| 1 | 74.444 |
-| 2 | 74.396 |
-| 3 | 73.437 |
-| **Median** | **74.396** |
+| 1 | 74,444 |
+| 2 | 74,396 |
+| 3 | 73,437 |
+| **Mediana** | **74,396** |
 
-The baseline output (top 10 words and counts) is the reference for correctness.
+La salida de la línea base (las 10 palabras principales y sus conteos) es la referencia para verificar la corrección.
 
-### b. MPI version 1 (static)
+### b. Versión MPI 1 (estática)
 
-| Run | Total time (s) | Load imbalance LI |
+| Corrida | Tiempo total (s) | Desbalance de carga LI |
 | --- | ---: | ---: |
-| 1 | 9.587 | 1.057 |
-| 2 | 9.627 | 1.053 |
-| 3 | 9.533 | 1.049 |
-| **Median** | **9.587** | **1.053** |
+| 1 | 9,587 | 1,057 |
+| 2 | 9,627 | 1,053 |
+| 3 | 9,533 | 1,049 |
+| **Mediana** | **9,587** | **1,053** |
 
-Speedup `S_11 = 74.396 / 9.587 = 7.76`, efficiency `E_11 = 7.76 / 11 = 0.71`.
+Aceleración `S_11 = 74,396 / 9,587 = 7,76`, eficiencia `E_11 = 7,76 / 11 = 0,71`.
 
-The top 10 words are identical to the baseline in all three runs.
+Las 10 palabras principales son idénticas a la línea base en las tres corridas.
 
-Local processing time per process in the median run (run 2):
+Tiempo de procesamiento local por proceso en la corrida mediana (corrida 2):
 
-| Rank | Files | Local time (s) |
+| Rango | Archivos | Tiempo local (s) |
 | ---: | ---: | ---: |
-| 0 | 273 | 9.617 |
-| 1 | 273 | 9.509 |
-| 2 | 273 | 8.783 |
-| 3 | 273 | 8.992 |
-| 4 | 273 | 9.312 |
-| 5 | 273 | 8.719 |
-| 6 | 273 | 9.283 |
-| 7 | 273 | 9.012 |
-| 8 | 272 | 8.290 |
-| 9 | 272 | 9.432 |
-| 10 | 272 | 9.472 |
+| 0 | 273 | 9,617 |
+| 1 | 273 | 9,509 |
+| 2 | 273 | 8,783 |
+| 3 | 273 | 8,992 |
+| 4 | 273 | 9,312 |
+| 5 | 273 | 8,719 |
+| 6 | 273 | 9,283 |
+| 7 | 273 | 9,012 |
+| 8 | 272 | 8,290 |
+| 9 | 272 | 9,432 |
+| 10 | 272 | 9,472 |
 
-### c. MPI version 2 (dynamic)
+### c. Versión MPI 2 (dinámica)
 
-| Run | Total time (s) | Load imbalance LI |
+| Corrida | Tiempo total (s) | Desbalance de carga LI |
 | --- | ---: | ---: |
-| 1 | 12.506 | 1.235 |
-| 2 | 12.255 | 1.208 |
-| 3 | 14.756 | 1.251 |
-| **Median** | **12.506** | **1.235** |
+| 1 | 12,506 | 1,235 |
+| 2 | 12,255 | 1,208 |
+| 3 | 14,756 | 1,251 |
+| **Mediana** | **12,506** | **1,235** |
 
-Speedup `S_11 = 74.396 / 12.506 = 5.95`, efficiency `E_11 = 0.54`.
+Aceleración `S_11 = 74,396 / 12,506 = 5,95`, eficiencia `E_11 = 0,54`.
 
-The top 10 words are identical to the baseline in all three runs.
+Las 10 palabras principales son idénticas a la línea base en las tres corridas.
 
-Per-process times in the median run (run 1):
+Tiempos por proceso en la corrida mediana (corrida 1):
 
-| Rank | Files | Local time (s) |
+| Rango | Archivos | Tiempo local (s) |
 | ---: | ---: | ---: |
-| 0 | 332 | 11.898 |
-| 1 | 270 | 9.302 |
-| 2 | 265 | 9.327 |
-| 3 | 268 | 9.536 |
-| 4 | 272 | 9.603 |
-| 5 | 267 | 9.399 |
-| 6 | 269 | 9.262 |
-| 7 | 263 | 9.190 |
-| 8 | 259 | 9.147 |
-| 9 | 261 | 9.367 |
-| 10 | 274 | 9.920 |
+| 0 | 332 | 11,898 |
+| 1 | 270 | 9,302 |
+| 2 | 265 | 9,327 |
+| 3 | 268 | 9,536 |
+| 4 | 272 | 9,603 |
+| 5 | 267 | 9,399 |
+| 6 | 269 | 9,262 |
+| 7 | 263 | 9,190 |
+| 8 | 259 | 9,147 |
+| 9 | 261 | 9,367 |
+| 10 | 274 | 9,920 |
 
-Rank 0 does 332 files and takes 11.90 s. The workers do 259–274 files each and finish their own work after 9.15–9.92 s, so they are idle for 2.6–3.4 s before the end at 12.51 s.
+El rango 0 procesa 332 archivos y tarda 11,90 s. Los trabajadores procesan entre 259 y 274 archivos cada uno y terminan su trabajo entre 9,15 y 9,92 s, así que quedan inactivos entre 2,6 y 3,4 s antes del final, en 12,51 s.
 
-### d. Summary
+### d. Resumen
 
-| Version | Median time (s) | Speedup | Efficiency | LI (median) |
+| Versión | Tiempo mediano (s) | Aceleración | Eficiencia | LI (mediana) |
 | --- | ---: | ---: | ---: | ---: |
-| Sequential | 74.396 | 1.00 | – | – |
-| MPI v1, static | 9.587 | 7.76 | 0.71 | 1.053 |
-| MPI v2, dynamic | 12.506 | 5.95 | 0.54 | 1.235 |
+| Secuencial | 74,396 | 1,00 | – | – |
+| MPI v1, estática | 9,587 | 7,76 | 0,71 | 1,053 |
+| MPI v2, dinámica | 12,506 | 5,95 | 0,54 | 1,235 |
 
-## 5. Analysis
+## 5. Análisis
 
-### Parallel performance
+### Desempeño en paralelo
 
-Version 1 reduces the time from 74.4 s to 9.6 s, a speedup of 7.76 with 11 processes. The efficiency is 0.71, so about 29 % of the ideal speedup is lost. The PC has 12 logical processors, and each one is shared with the operating system and Docker, so the ideal speedup of 11 cannot be reached. The communication cost is small: one broadcast of 200 words, one scatter of 3,000 file names and one gather of 11 dictionaries, all in a single step, compared with 9.6 s of work.
+La versión 1 reduce el tiempo de 74,4 s a 9,6 s, una aceleración de 7,76 con 11 procesos. La eficiencia es 0,71, así que se pierde cerca del 29 % de la aceleración ideal. El PC tiene 12 procesadores lógicos, y cada uno se comparte con el sistema operativo y con Docker, por eso no se puede alcanzar la aceleración ideal de 11. El costo de comunicación es pequeño: un broadcast de 200 palabras, un scatter de 3.000 nombres de archivo y un gather de 11 diccionarios, todo en un solo paso, frente a 9,6 s de trabajo.
 
-### Load balance
+### Balance de carga
 
-Version 1 is already well balanced: LI is between 1.05 and 1.06 in all runs. Round-robin gives each process 272 or 273 files, and the local times in the median run go from 8.3 s to 9.6 s. The remaining difference comes from the file sizes, which do not average out perfectly over 272 files per process.
+La versión 1 ya está bien balanceada: LI está entre 1,05 y 1,06 en todas las corridas. El reparto por turnos le da a cada proceso entre 272 y 273 archivos, y los tiempos locales en la corrida mediana van de 8,3 s a 9,6 s. La diferencia restante viene del tamaño de los archivos, que no se compensa del todo con 272 archivos por proceso.
 
-Version 2 did not reduce the imbalance; its LI is higher (about 1.24). The problem is rank 0. It counts files and also dispatches work. While it is counting a file, it does not answer the workers, so they finish their queued files and wait. Rank 0 ends last (11.9 s in the median run), and the workers wait 2.6–3.4 s each at the end. Rank 0 also ends up with more files (about 330 against about 266 per worker in the median run), because it takes work between its own counts. The average cost per file is about 35 ms, so the messages are not expensive; the waiting caused by rank 0 is what costs time.
+La versión 2 no redujo el desbalance; su LI es más alto (cerca de 1,24). El problema es el rango 0. Cuenta archivos y además reparte el trabajo. Mientras cuenta un archivo, no responde a los trabajadores, así que ellos terminan sus archivos en cola y esperan. El rango 0 termina último (11,9 s en la corrida mediana), y los trabajadores esperan entre 2,6 y 3,4 s cada uno al final. El rango 0 también termina con más archivos (cerca de 330 contra unos 266 por trabajador en la corrida mediana), porque toma trabajo entre sus propios conteos. El costo promedio por archivo es de unos 35 ms, así que los mensajes no son caros; lo que cuesta tiempo es la espera causada por el rango 0.
 
-We did not test a variant where rank 0 only coordinates and does not count files. That variant would remove the waiting described above, but it is not part of these results.
+No probamos una variante en la que el rango 0 solo coordine y no cuente archivos. Esa variante eliminaría la espera descrita arriba, pero no forma parte de estos resultados.
 
-### Limitations
+### Limitaciones
 
-- **Machine:** all runs are on one PC, so the results may not apply to another machine.
-- **Repetitions:** three runs per configuration is a small sample. Version 2 run 3 (14.8 s) is clearly slower than the other two runs.
-- **Timer:** times are wall-clock times, measured inside each process. Other programs running on the PC can affect them.
-- **Single dataset:** all runs use one dataset (seed 42).
-- **Measured parts:** the baseline times only the counting step, while the MPI total also includes the broadcast, the scatter and the gather.
-- **Baseline output:** the baseline prints its time as `Tiempo de ejecución:` and `run_all.sh` does not record it, so its three times were copied by hand from the logs in `results/logs/`. The two extra baseline logs were written in UTF-16 by PowerShell and were converted to UTF-8 for this repository; their content is unchanged.
+- **Máquina:** todas las corridas son en un solo PC, así que los resultados podrían no aplicar a otra máquina.
+- **Repeticiones:** tres corridas por configuración es una muestra pequeña. La corrida 3 de la versión 2 (14,8 s) es claramente más lenta que las otras dos.
+- **Cronómetro:** los tiempos son de reloj de pared, medidos dentro de cada proceso. Otros programas corriendo en el PC pueden afectarlos.
+- **Conjunto de datos único:** todas las corridas usan un solo conjunto de datos (semilla 42).
+- **Partes medidas:** la línea base mide solo el paso de conteo, mientras que el total de MPI también incluye el broadcast, el scatter y el gather.
+- **Salida de la línea base:** la línea base imprime su tiempo como `Tiempo de ejecución:` y `run_all.sh` no lo registra, así que sus tres tiempos se copiaron a mano de los logs en `results/logs/`. Los dos logs extra de la línea base fueron escritos en UTF-16 por PowerShell y se convirtieron a UTF-8 para este repositorio; su contenido no cambió.
 
-## 6. Conclusions
+## 6. Conclusiones
 
-For this dataset and this machine I recommend the static round-robin distribution of version 1. It is simpler, it reaches a speedup of 7.76 with 11 processes, and its load imbalance is already close to 1 (LI 1.05), so dynamic scheduling has little to gain. Version 2 was about 30 % slower (12.5 s against 9.6 s) and its imbalance was higher, because rank 0 has to both coordinate the work and count files. Dynamic distribution would be worth trying with more variable file costs, or with a coordinator that does not count files.
-
-## Files
-
-- `generator.py`, `baseline_secuencial.py`, `run_all.sh`: as provided by the lab (not modified).
-- `mpi1.py`: MPI version 1, static distribution.
-- `mpi2.py`: MPI version 2, dynamic distribution.
-- `README.md`: this report.
+Para este conjunto de datos y esta máquina recomiendo la distribución estática por turnos de la versión 1. Es más simple, alcanza una aceleración de 7,76 con 11 procesos, y su desbalance de carga ya está cerca de 1 (LI 1,05), así que la planificación dinámica tiene poco que ganar. La versión 2 fue cerca de 30 % más lenta (12,5 s contra 9,6 s) y su desbalance fue mayor, porque el rango 0 tiene que coordinar el trabajo y además contar archivos. La distribución dinámica valdría la pena probarla con costos de archivo más variables, o con un coordinador que no cuente archivos.
