@@ -156,11 +156,3 @@ No se probó una variante en la que el rango 0 solo coordine y no cuente archivo
 ## 6. Conclusión
 
 Para este dataset y esta máquina, recomiendo la versión 1 (estática). Es más simple, alcanza una aceleración de 7,76 con 11 procesos y su balance ya es casi perfecto. La versión 2 fue cerca de 30 % más lenta (12,5 s frente a 9,6 s) porque el rango 0 coordina y cuenta a la vez. La distribución dinámica valdría la pena con archivos de costo más variable o con un coordinador que no cuente archivos.
-
-## Archivos
-
-- `generator.py`, `baseline_secuencial.py`, `run_all.sh`: provistos por el laboratorio, sin cambios.
-- `mpi1.py`: versión 1, distribución estática.
-- `mpi2.py`: versión 2, distribución dinámica.
-- `results/`: logs y resumen de la ejecución con `p = 11`.
-- `README.md`: este informe.
